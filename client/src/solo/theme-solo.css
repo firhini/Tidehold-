@@ -1,0 +1,172 @@
+/* ==========================================================================
+   TIDEHOLD SOLO — screen-specific styling on top of the shared theme.css
+   design system (.panel, .btn, .card, .hud-*, colors, etc. are already loaded).
+   These classes cover the solo-only surfaces: cold-open hint, run HUD strip,
+   game-over, meta shop, daily leaderboard, pause, ad modal.
+   ========================================================================== */
+
+/* Cold-open teaching hint */
+.coldopen {
+  position: absolute;
+  left: 50%;
+  bottom: calc(74px + var(--safe-bottom));
+  transform: translateX(-50%);
+  background: var(--glass);
+  border: 1px solid rgba(224, 182, 79, 0.5);
+  border-radius: 999px;
+  padding: 10px 18px;
+  color: var(--brass);
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+  z-index: 35;
+  backdrop-filter: blur(14px);
+  text-align: center;
+  max-width: calc(100vw - 32px);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* Run HUD: compact top strip */
+.solo-hud-top {
+  position: absolute;
+  top: var(--safe-top);
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(4, 18, 31, 0.9), transparent);
+}
+.solo-hud-top > * { pointer-events: auto; }
+
+.solo-tide {
+  flex: 0 1 320px;
+  min-width: 150px;
+  background: rgba(9, 30, 48, 0.82);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 6px 12px 8px;
+}
+.solo-tide.imminent { border-color: rgba(120, 220, 255, 0.7); animation: pulse 1s ease-in-out infinite; }
+.solo-tide-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; white-space: nowrap; }
+.solo-tide-fill-track { margin-top: 5px; height: 5px; border-radius: 3px; background: rgba(157, 180, 192, 0.15); overflow: hidden; }
+.solo-tide-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2b7ea1, #9adbe8); transition: width .5s ease; }
+
+.solo-stat { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: rgba(9, 30, 48, 0.8); border: 1px solid var(--glass-border); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.solo-hud-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.icon-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: rgba(9, 30, 48, 0.8); border: 1px solid var(--glass-border); color: var(--ink-dim); font-size: 16px; }
+.icon-btn:hover { color: var(--ink); background: rgba(157, 180, 192, 0.15); }
+
+/* Bottom action dock */
+.solo-dock {
+  position: absolute;
+  bottom: var(--safe-bottom);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  margin-bottom: 8px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  z-index: 20;
+  max-width: calc(100vw - 16px);
+  overflow-x: auto;
+}
+.solo-dock button { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 52px; padding: 7px 8px; border-radius: 11px; color: var(--ink-dim); position: relative; }
+.solo-dock button:hover { background: rgba(157, 180, 192, 0.1); color: var(--ink); }
+.solo-dock button.active { background: rgba(224, 182, 79, 0.14); color: var(--brass); }
+.solo-dock .ico { font-size: 17px; }
+.solo-dock .lbl { font-size: 10px; font-weight: 600; }
+
+/* Rewarded "hold the tide" floating prompt */
+.hold-tide {
+  position: absolute;
+  top: calc(64px + var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 36;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px 8px 16px;
+  background: var(--glass);
+  border: 1px solid rgba(120, 220, 255, 0.5);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  font-size: 13px;
+  color: #9adbe8;
+  animation: panel-in .2s ease-out;
+}
+
+/* Full-screen overlays: game-over, meta, daily, pause */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: radial-gradient(ellipse at 50% 120%, rgba(11, 46, 79, 0.7), rgba(4, 18, 31, 0.92) 70%);
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+.sheet {
+  width: min(560px, 100%);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 26px;
+  animation: panel-in .22s ease-out;
+  margin: auto;
+}
+.sheet h2 { font-family: var(--font-display); color: var(--brass); font-size: 30px; letter-spacing: .04em; margin-bottom: 4px; text-align: center; }
+.sheet .sub { text-align: center; color: var(--ink-dim); margin-bottom: 18px; }
+
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.result-cell { background: rgba(4, 18, 31, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 14px; }
+.result-cell .k { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-faint); }
+.result-cell .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.result-cell .v.gold { color: var(--brass); }
+
+.btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.btn-row .btn { flex: 1; min-width: 130px; }
+.btn-reward { background: linear-gradient(180deg, rgba(120, 220, 255, 0.22), rgba(120, 220, 255, 0.1)); border-color: rgba(120, 220, 255, 0.5); color: #9adbe8; }
+.btn-reward:hover:not(:disabled) { background: linear-gradient(180deg, rgba(120, 220, 255, 0.34), rgba(120, 220, 255, 0.16)); }
+
+/* Meta shop grid */
+.shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px){ .shop-grid { grid-template-columns: 1fr; } .result-grid { grid-template-columns: 1fr 1fr; } }
+.shop-item { text-align: left; background: rgba(4, 18, 31, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.shop-item.owned { border-color: rgba(88, 192, 138, 0.45); }
+.shop-item.selected { border-color: rgba(224, 182, 79, 0.6); box-shadow: 0 0 0 1px rgba(224,182,79,.3) inset; }
+.shop-item .name { font-weight: 700; }
+.shop-item .desc { font-size: 12px; color: var(--ink-dim); flex: 1; }
+.shop-price { font-family: var(--font-display); color: var(--brass); font-weight: 700; }
+
+.salvage-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(224, 182, 79, 0.14); border: 1px solid rgba(224, 182, 79, 0.4); color: var(--brass); font-weight: 700; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; background: rgba(4, 18, 31, 0.5); border-radius: 10px; padding: 4px; }
+.tabs button { flex: 1; padding: 9px; border-radius: 8px; color: var(--ink-faint); font-weight: 600; font-size: 13px; }
+.tabs button.active { background: rgba(224, 182, 79, 0.14); color: var(--brass); }
+
+/* Daily leaderboard */
+.lb-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-radius: 10px; background: rgba(4, 18, 31, 0.4); border: 1px solid var(--glass-border); margin-bottom: 6px; }
+.lb-rank { font-family: var(--font-display); color: var(--brass); font-weight: 700; width: 26px; }
+
+/* Ad modal */
+.ad-modal { position: absolute; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; background: rgba(2, 10, 18, 0.9); }
+.ad-box { width: min(420px, 90vw); background: var(--glass); border: 1px solid var(--glass-border); border-radius: 16px; padding: 26px; text-align: center; box-shadow: var(--shadow); }
+.ad-fake { height: 150px; border-radius: 12px; background: linear-gradient(135deg, #123049, #0b2e4f); display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-size: 13px; margin: 14px 0; border: 1px dashed var(--glass-border); }
+.ad-progress { height: 4px; border-radius: 2px; background: rgba(157,180,192,.2); overflow: hidden; margin-bottom: 14px; }
+.ad-progress > div { height: 100%; background: var(--brass); width: 0; transition: width linear; }

@@ -72,6 +72,10 @@ export interface WorldMeta {
   phase: SeasonPhase;
   /** Season number, increments when a world ends and regenerates. */
   season: number;
+  /** Real seconds per tick (server config, informational for clients). */
+  tickSeconds: number;
+  /** Ticks between tide rises (server config, informational for clients). */
+  tideIntervalTicks: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +127,8 @@ export interface PlayerState {
   username: string;
   ark: Ark;
   resources: Resources;
+  /** Market currency balance. */
+  shells: number;
   /** 0..200, starts at 100. Below OATHBREAKER_THRESHOLD → oathbreaker. */
   reputation: number;
   score: number;

@@ -76,6 +76,8 @@ export interface WorldMeta {
   tickSeconds: number;
   /** Ticks between tide rises (server config, informational for clients). */
   tideIntervalTicks: number;
+  /** Tick at which the season ended (set when phase becomes 'ended'). */
+  endedAtTick?: number;
 }
 
 // ---------------------------------------------------------------------------

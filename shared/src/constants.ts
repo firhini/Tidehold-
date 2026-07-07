@@ -21,6 +21,8 @@ export const GAME_NAME = 'TIDEHOLD';
 export const DEFAULT_TICK_SECONDS = 20;
 /** Ticks between tide rises. 9 rises end the season. */
 export const DEFAULT_TIDE_INTERVAL_TICKS = 360;
+/** Ticks after a season ends before the world regenerates for the next one. */
+export const SEASON_REST_TICKS = 90;
 
 export const MAX_ELEVATION = 9;
 /** Tide level at which the season ends (peaks at MAX_ELEVATION survive). */
@@ -38,7 +40,7 @@ export const DEFAULT_WORLD_SEED = 421_337;
 
 export const STARTING_RESOURCES: Resources = {
   timber: 140,
-  ore: 80,
+  ore: 110,
   food: 160,
   relics: 0,
 };
@@ -113,8 +115,11 @@ export const BUILDINGS: Record<BuildingType, BuildingSpec> = {
   },
   port: {
     name: 'Port',
-    description: 'Launches expeditions and halves market fees.',
-    terrain: ['coast'],
+    // Placement rule is special-cased: any land tile ADJACENT TO WATER
+    // (see server actions.build / client TilePanel) — the shoreline climbs
+    // as the world drowns, so ports follow it. `terrain` here is advisory.
+    description: 'Launches expeditions and halves market fees. Needs water at its doorstep.',
+    terrain: ['coast', 'plains', 'forest', 'hills', 'mountains', 'peak'],
     cost: { timber: 120, ore: 60 },
     production: {},
   },

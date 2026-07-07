@@ -27,6 +27,7 @@ import {
   SCORE_RUIN_CLEARED,
   SCORE_TILE_SURVIVES_TIDE,
   SEASON_END_TIDE,
+  SEASON_REST_TICKS,
   STARTING_REPUTATION,
   scaleResources,
   subResources,
@@ -47,6 +48,7 @@ import {
   armiesAt,
   nextSeed,
   persistAll,
+  startNewSeason,
   tileAt,
   type GameState,
 } from './state.js';
@@ -76,6 +78,10 @@ export function runTick(db: Db, state: GameState): TickResult {
     runContracts(db, state, tick);
     tickMarket(state.market, state.meta.tideLevel);
     runReputationDrift(state, tick);
+  } else if (tick >= (state.meta.endedAtTick ?? tick) + SEASON_REST_TICKS) {
+    // The rest between seasons is over — raise a new continent.
+    startNewSeason(db, state);
+    for (const t of state.tiles) markDirty(t);
   }
 
   const tideRose = runTide(db, state, tick, markDirty);
@@ -569,6 +575,7 @@ function runTide(db: Db, state: GameState, tick: number, markDirty: (t: Tile) =>
       message: phaseText[newPhase] ?? `The world enters its ${newPhase} phase.`,
     });
     if (newPhase === 'ended') {
+      state.meta.endedAtTick = tick;
       const standings = [...state.players.values()]
         .filter((p) => !p.defeated)
         .sort((a, b) => b.score - a.score)

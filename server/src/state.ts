@@ -11,6 +11,7 @@ import {
   hash2,
   hexDistance,
   hexKey,
+  MAX_ELEVATION,
   rng,
   STARTING_REPUTATION,
   STARTING_RESOURCES,
@@ -258,39 +259,43 @@ function makeCommanders(seed: number): Commander[] {
 }
 
 /**
- * Choose a spawn tile: unflooded land at elevation 2-4, near the coast,
- * far from other Arks, biased toward the rim so newcomers don't spawn
- * inside someone's heartland.
+ * Choose a spawn tile: unflooded land with breathing room above the current
+ * waterline, far from other Arks. Late in the season the constraints relax —
+ * a newcomer always gets whatever land the sea has left.
  */
 export function findSpawnTile(state: GameState): Tile | null {
   const arks = [...state.players.values()].filter((p) => !p.defeated).map((p) => p.ark);
+  const tide = state.meta.tideLevel;
   const candidates = state.tiles.filter(
     (t) =>
       !t.flooded &&
-      t.elevation >= 2 &&
-      t.elevation <= 5 &&
       t.terrain !== 'ruins' &&
+      t.terrain !== 'ocean' &&
+      t.terrain !== 'drowned' &&
       !t.building &&
-      !t.ownerId,
+      !t.ownerId &&
+      !arks.some((a) => a.q === t.q && a.r === t.r),
   );
+  const idealElevation = Math.min(MAX_ELEVATION, tide + 3);
+  const score = (t: Tile, minArkDist: number) =>
+    Math.min(minArkDist, 14) +
+    (t.richness - 1) * 0.75 -
+    Math.abs(t.elevation - idealElevation) * 0.4;
+
   let best: Tile | null = null;
   let bestScore = -Infinity;
-  for (const t of candidates) {
-    let minArkDist = Infinity;
-    for (const a of arks) minArkDist = Math.min(minArkDist, hexDistance(t, a));
-    if (minArkDist < 6) continue;
-    // Prefer moderate distance from everyone plus some elevation headroom.
-    const score =
-      Math.min(minArkDist, 14) + t.elevation * 0.5 + (t.richness - 1) * 0.75;
-    if (score > bestScore) {
-      bestScore = score;
-      best = t;
+  for (const minDist of [6, 3, 1]) {
+    for (const t of candidates) {
+      let minArkDist = Infinity;
+      for (const a of arks) minArkDist = Math.min(minArkDist, hexDistance(t, a));
+      if (minArkDist < minDist) continue;
+      const sc = score(t, minArkDist);
+      if (sc > bestScore) {
+        bestScore = sc;
+        best = t;
+      }
     }
-  }
-  if (!best && candidates.length > 0) {
-    // Crowded world: relax the ark-distance rule.
-    best = candidates[0];
-    for (const t of candidates) if (t.elevation > best.elevation) best = t;
+    if (best) break; // relax the ark-distance rule only when the world is crowded
   }
   return best;
 }
@@ -334,6 +339,67 @@ export function createPlayer(
   );
   state.players.set(id, player);
   return player;
+}
+
+// ---------------------------------------------------------------------------
+// Season rollover — the sea always wins; the world always returns.
+// ---------------------------------------------------------------------------
+
+/**
+ * Regenerate the world for a new season. Accounts and reputation persist;
+ * everything on the map — and every seasonal gain — starts fresh.
+ */
+export function startNewSeason(db: Db, state: GameState): void {
+  const meta = state.meta;
+  meta.season++;
+  meta.seed = hash2(meta.season, 0x5ea, meta.seed);
+  meta.tideLevel = 0;
+  meta.nextTideTick = meta.tick + meta.tideIntervalTicks;
+  meta.phase = 'expansion';
+  delete meta.endedAtTick;
+
+  const tiles = generateWorld(meta.seed, meta.radius);
+  state.tiles = tiles;
+  state.tileMap = new Map(tiles.map((t) => [hexKey(t.q, t.r), t]));
+  state.armies.clear();
+  state.battles.clear();
+  state.expeditions.clear();
+  state.contracts.clear();
+  state.market = createMarket();
+
+  db.prepare('DELETE FROM tiles').run();
+  db.prepare('DELETE FROM armies').run();
+  db.prepare('DELETE FROM battles').run();
+  db.prepare('DELETE FROM expeditions').run();
+  db.prepare('DELETE FROM contracts').run();
+
+  for (const p of state.players.values()) {
+    p.resources = { ...STARTING_RESOURCES };
+    p.shells = STARTING_SHELLS;
+    p.score = 0;
+    p.techs = [];
+    p.defeated = false;
+    for (const c of p.commanders) {
+      c.status = 'ready';
+      delete c.capturedById;
+    }
+    p.ark.level = 1;
+    p.ark.maxHp = ARK_BASE_HP + ARK_HP_PER_LEVEL;
+    p.ark.hp = p.ark.maxHp;
+    p.ark.moveReadyTick = 0;
+    p.ark.damagedUntilTick = 0;
+    const spawn = findSpawnTile(state);
+    if (spawn) {
+      p.ark.q = spawn.q;
+      p.ark.r = spawn.r;
+    }
+    // Reputation persists across seasons — fame and infamy outlive the flood.
+  }
+
+  addEvent(db, state, {
+    type: 'season',
+    message: `SEASON ${meta.season} — the waters recede over a new continent. Every Ark finds new shores. The Tide, as ever, is already rising.`,
+  });
 }
 
 // ---------------------------------------------------------------------------

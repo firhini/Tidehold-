@@ -5,6 +5,7 @@
  */
 import {
   addResources,
+  hexNeighbors,
   ARK_INFLUENCE_RADIUS,
   ARK_MAX_LEVEL,
   ARK_MOVE_COOLDOWN_TICKS,
@@ -147,7 +148,15 @@ export function build(
   const spec = BUILDINGS[buildingType];
   if (tile.ownerId !== player.id) fail('You must claim this land before building on it.');
   if (tile.building) fail('This tile is already built.');
-  if (!spec.terrain.includes(tile.terrain)) {
+  if (buildingType === 'port') {
+    // The shoreline climbs as the world drowns: a port stands on any land
+    // that touches water today, not just the original coast.
+    const touchesWater = hexNeighbors(tile).some((nb) => {
+      const t = tileAt(state, nb.q, nb.r);
+      return !t || t.flooded || t.terrain === 'ocean' || t.terrain === 'drowned';
+    });
+    if (!touchesWater) fail('A port needs the water at its doorstep. Build on the shoreline.');
+  } else if (!spec.terrain.includes(tile.terrain)) {
     fail(`A ${spec.name} cannot stand on ${tile.terrain}. It needs: ${spec.terrain.join(', ')}.`);
   }
   const cost = buildingCost(buildingType, 1);

@@ -1,56 +1,88 @@
 /**
- * The Reliquary — spend Salvage (earned every run) on permanent upgrades,
- * commanders to lead with, and cosmetic Ark skins.
+ * The Reliquary — the Salvage shop, TIDEHOLD's permanent progression. Spend the
+ * meta currency you earn every run on run-start upgrades, commanders to lead a
+ * run with, and cosmetic Ark hull skins. Every purchase and selection flows
+ * through the store (which persists to localStorage and toasts its own results).
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { useSolo } from '../store.js';
 import { COMMANDERS, SKINS, UPGRADES } from '../config.js';
 
 type Tab = 'upgrades' | 'commanders' | 'skins';
 
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'upgrades', label: 'Upgrades' },
+  { id: 'commanders', label: 'Commanders' },
+  { id: 'skins', label: 'Skins' },
+];
+
+/** Leave the shop back to wherever the player came from — a live run, else game-over. */
 function back(): void {
   const s = useSolo.getState();
-  useSolo.setState({ screen: s.result ? 'gameover' : 'run' });
+  if (s.me && !s.result) useSolo.setState({ screen: 'run' });
+  else useSolo.setState({ screen: 'gameover' });
 }
 
+const ACTION_BTN: React.CSSProperties = { minHeight: 44, marginTop: 4 };
+const NAV_BTN: React.CSSProperties = { minHeight: 40 };
+
 export function MetaScreen() {
+  const [tab, setTab] = React.useState<Tab>('upgrades');
   const meta = useSolo((s) => s.metaState);
   const buyUpgrade = useSolo((s) => s.buyUpgrade);
   const buyCommander = useSolo((s) => s.buyCommander);
   const buySkin = useSolo((s) => s.buySkin);
   const selectCommander = useSolo((s) => s.selectCommander);
   const selectSkin = useSolo((s) => s.selectSkin);
-  const [tab, setTab] = useState<Tab>('upgrades');
 
   return (
-    <div className="overlay">
+    <div className="overlay" role="dialog" aria-label="The Reliquary">
       <div className="sheet" style={{ width: 'min(640px, 100%)' }}>
-        <div className="row-between" style={{ marginBottom: 6 }}>
-          <button className="btn btn-ghost" onClick={back}>← Back to the sea</button>
+        <div className="row-between" style={{ marginBottom: 14 }}>
+          <button className="btn btn-ghost" style={NAV_BTN} onClick={back}>
+            ← Back to the sea
+          </button>
           <span className="salvage-badge">🐚 {meta.salvage} salvage</span>
         </div>
-        <h2 style={{ marginBottom: 2 }}>The Reliquary</h2>
-        <div className="sub">Salvage is earned every run. Upgrades are permanent — each run starts stronger.</div>
 
-        <div className="tabs">
-          <button className={tab === 'upgrades' ? 'active' : ''} onClick={() => setTab('upgrades')}>Upgrades</button>
-          <button className={tab === 'commanders' ? 'active' : ''} onClick={() => setTab('commanders')}>Commanders</button>
-          <button className={tab === 'skins' ? 'active' : ''} onClick={() => setTab('skins')}>Skins</button>
+        <h2>The Reliquary</h2>
+        <p className="sub">Salvage is earned every run. Upgrades are permanent.</p>
+
+        <div className="tabs" role="tablist">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              className={tab === t.id ? 'active' : ''}
+              style={NAV_BTN}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {tab === 'upgrades' && (
           <div className="shop-grid">
             {UPGRADES.map((u) => {
               const owned = meta.upgrades.includes(u.id);
+              const affordable = meta.salvage >= u.cost;
               return (
                 <div key={u.id} className={`shop-item${owned ? ' owned' : ''}`}>
-                  <div className="row-between"><span className="name">{u.name}</span><span className="shop-price">🐚 {u.cost}</span></div>
+                  <div className="row-between">
+                    <span className="name">{u.name}</span>
+                    <span className="shop-price">🐚 {u.cost}</span>
+                  </div>
                   <div className="desc">{u.description}</div>
-                  {owned ? (
-                    <span className="tag" style={{ color: 'var(--success)' }}>✓ Owned</span>
-                  ) : (
-                    <button className="btn" disabled={meta.salvage < u.cost} onClick={() => buyUpgrade(u.id)}>Unlock</button>
-                  )}
+                  <button
+                    className="btn"
+                    style={ACTION_BTN}
+                    disabled={owned || !affordable}
+                    onClick={() => buyUpgrade(u.id)}
+                  >
+                    {owned ? '✓ Owned' : affordable ? 'Buy' : 'Not enough salvage'}
+                  </button>
                 </div>
               );
             })}
@@ -60,18 +92,28 @@ export function MetaScreen() {
         {tab === 'commanders' && (
           <div className="shop-grid">
             {COMMANDERS.map((c) => {
-              const owned = meta.commanders.includes(c.id);
+              const unlocked = meta.commanders.includes(c.id);
               const selected = meta.selectedCommander === c.id;
+              const affordable = meta.salvage >= c.cost;
               return (
-                <div key={c.id} className={`shop-item${owned ? ' owned' : ''}${selected ? ' selected' : ''}`}>
-                  <div className="row-between"><span className="name">{c.name}</span>{!owned && <span className="shop-price">🐚 {c.cost}</span>}</div>
+                <div key={c.id} className={`shop-item${unlocked ? ' owned' : ''}${selected ? ' selected' : ''}`}>
+                  <div className="row-between">
+                    <span className="name">{c.name}</span>
+                    {!unlocked && <span className="shop-price">🐚 {c.cost}</span>}
+                  </div>
                   <div className="desc">{c.description}</div>
-                  {!owned ? (
-                    <button className="btn" disabled={meta.salvage < c.cost} onClick={() => buyCommander(c.id)}>Recruit</button>
-                  ) : selected ? (
-                    <span className="tag tag-gold">✓ Leading</span>
+                  {selected ? (
+                    <button className="btn" style={ACTION_BTN} disabled>
+                      ✓ Leading
+                    </button>
+                  ) : unlocked ? (
+                    <button className="btn btn-ghost" style={ACTION_BTN} onClick={() => selectCommander(c.id)}>
+                      Lead this run
+                    </button>
                   ) : (
-                    <button className="btn btn-ghost" onClick={() => selectCommander(c.id)}>Lead this run</button>
+                    <button className="btn" style={ACTION_BTN} disabled={!affordable} onClick={() => buyCommander(c.id)}>
+                      {affordable ? 'Buy' : 'Not enough salvage'}
+                    </button>
                   )}
                 </div>
               );
@@ -81,21 +123,46 @@ export function MetaScreen() {
 
         {tab === 'skins' && (
           <div className="shop-grid">
-            {SKINS.map((s) => {
-              const owned = meta.skins.includes(s.id);
-              const selected = meta.selectedSkin === s.id;
+            {SKINS.map((skin) => {
+              const owned = meta.skins.includes(skin.id);
+              const selected = meta.selectedSkin === skin.id;
+              const affordable = meta.salvage >= skin.cost;
               return (
-                <div key={s.id} className={`shop-item${owned ? ' owned' : ''}${selected ? ' selected' : ''}`}>
+                <div key={skin.id} className={`shop-item${owned ? ' owned' : ''}${selected ? ' selected' : ''}`}>
                   <div className="row-between">
-                    <span className="name"><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 6, background: s.ark, marginRight: 8, verticalAlign: 'middle' }} />{s.name}</span>
-                    {!owned && <span className="shop-price">🐚 {s.cost}</span>}
+                    <span className="name" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: 5,
+                          background: skin.ark,
+                          boxShadow: `0 0 8px ${skin.ark}, inset 0 0 0 1px rgba(255,255,255,0.18)`,
+                          flexShrink: 0,
+                        }}
+                      />
+                      {skin.name}
+                    </span>
+                    {!owned && <span className="shop-price">🐚 {skin.cost}</span>}
                   </div>
-                  {!owned ? (
-                    <button className="btn" disabled={meta.salvage < s.cost} onClick={() => buySkin(s.id)}>Acquire</button>
-                  ) : selected ? (
-                    <span className="tag tag-gold">✓ Equipped</span>
+                  <div className="desc">
+                    {skin.worldTint
+                      ? 'Recolors your hull and tints the whole drowning sea.'
+                      : 'A fresh accent for your Ark against the dark water.'}
+                  </div>
+                  {selected ? (
+                    <button className="btn" style={ACTION_BTN} disabled>
+                      ✓ Equipped
+                    </button>
+                  ) : owned ? (
+                    <button className="btn btn-ghost" style={ACTION_BTN} onClick={() => selectSkin(skin.id)}>
+                      Equip
+                    </button>
                   ) : (
-                    <button className="btn btn-ghost" onClick={() => selectSkin(s.id)}>Equip</button>
+                    <button className="btn" style={ACTION_BTN} disabled={!affordable} onClick={() => buySkin(skin.id)}>
+                      {affordable ? 'Buy' : 'Not enough salvage'}
+                    </button>
                   )}
                 </div>
               );

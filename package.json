@@ -1,0 +1,23 @@
+{
+  "name": "tidehold",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TIDEHOLD — a multiplayer browser strategy game where the world itself is the enemy.",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace server & npm run dev --workspace client & wait",
+    "dev:server": "npm run dev --workspace server",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server",
+    "test": "npm run test --workspace shared && npm run test --workspace server",
+    "typecheck": "npm run typecheck --workspace shared && npm run typecheck --workspace server && npm run typecheck --workspace client"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
